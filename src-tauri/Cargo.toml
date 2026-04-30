@@ -1,0 +1,44 @@
+[package]
+name = "gdz-gj"
+version = "0.1.0"
+edition = "2021"
+description = "电子档案归档章印制工具 - Archive Filing Seal"
+
+[lib]
+name = "gdz_gj_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+# 异步运行时
+tokio = { version = "1", features = ["full"] }
+
+# 文件扫描
+walkdir = "2"
+
+# 正则（支持命名捕获组）
+regex = "1"
+
+# PDF 处理（优先方案：纯 Rust）
+# pdfium-render feature 名称待确认，暂时注释，先用 lopdf 实现基础功能
+# pdfium-render = { version = "0.9", features = ["image_latest", "pdfium_latest"] }
+lopdf = "0.33"
+
+# 图像处理（空白检测辅助）
+image = "0.25"
+
+# 数据库
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls"] }
+
+# 序列化
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# 路径处理
+pathdiff = "0.2"
+
+# Tauri 插件
+tauri-plugin-fs = { version = "2", features = ["watch"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"

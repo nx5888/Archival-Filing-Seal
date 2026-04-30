@@ -1,0 +1,33 @@
+{
+  "productName": "GDZ-gj",
+  "version": "0.1.0",
+  "identifier": "com.gdz.archive-stamp",
+  "build": {
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "电子档案归档章印制工具",
+        "width": 1400,
+        "height": 900,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: asset: http://localhost; style-src 'self' 'unsafe-inline'",
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "windows",
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "resources": ["assets/fonts/**", "schemas/**"]
+  },
+  "plugins": []
+}

@@ -1,0 +1,107 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/gen/
+
+# Rust artifacts
+**/*.rlib
+**/*.rmeta
+**/*.dll
+**/*.exe
+**/*.so
+**/*.dylib
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+*.lcov
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Tauri
+src-tauri/target/
+
+# Python (if using Python sidecar)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Test data (don't commit large PDF files)
+**/0226/**
+**/*.pdf
+
+# User-specific files
+*.user
+*.suo
+*.ncb
+*.aps
+*.pdb
+*.idb
+*.akt
+*.bin
+*.dat
+*.dll
+*.exe

@@ -1,0 +1,40 @@
+{
+  "version": "2026.2",
+  "name": "科技档案归档章",
+  "description": "8格归档章，适用于科技档案",
+  "position": {
+    "anchor": "top-right",
+    "offset_mm": [5, 5],
+    "page_scope": "first-only"
+  },
+  "stamp_size_mm": [40, 20],
+  "cells": [
+    { "id": "fonds_code",  "label": "全宗号",    "row": 0, "col": 0, "source": "config",               "required": true  },
+    { "id": "project",     "label": "项目代号",  "row": 0, "col": 1, "source": "filename",  "regex_group": "project", "required": true  },
+    { "id": "year",        "label": "年度",      "row": 1, "col": 0, "source": "path",      "path_level": 0, "required": true  },
+    { "id": "category",    "label": "分类号",    "row": 1, "col": 1, "source": "filename",  "regex_group": "category", "required": true  },
+    { "id": "volume",      "label": "案卷号",    "row": 2, "col": 0, "source": "filename",  "regex_group": "volume", "required": true  },
+    { "id": "retention",   "label": "保管期限",  "row": 2, "col": 1, "source": "config_or_path", "path_level": 1, "required": true  },
+    { "id": "page_count",  "label": "页数",      "row": 3, "col": 0, "source": "pdf_metadata",              "required": true  },
+    { "id": "doc_num",     "label": "件号",      "row": 3, "col": 1, "source": "filename",  "regex_group": "docnum", "required": false }
+  ],
+  "field_registry": [
+    { "field_name": "fonds_code", "label": "全宗号",    "default_source": "config",          "required": true  },
+    { "field_name": "project",     "label": "项目代号",  "default_source": "filename",        "required": true  },
+    { "field_name": "year",       "label": "年度",      "default_source": "path",            "required": true  },
+    { "field_name": "category",   "label": "分类号",    "default_source": "filename",        "required": true  },
+    { "field_name": "volume",     "label": "案卷号",    "default_source": "filename",        "required": true  },
+    { "field_name": "retention",  "label": "保管期限",  "default_source": "config_or_path",  "required": true  },
+    { "field_name": "page_count", "label": "页数",      "default_source": "pdf_metadata",   "required": true  },
+    { "field_name": "doc_num",    "label": "件号",      "default_source": "filename",        "required": false }
+  ],
+  "font": { "family": "SimFang", "size_pt": 8, "fallback": "SimSun" },
+  "border": { "width_pt": 0.5, "color": [0, 0, 0] },
+  "page_number": {
+    "enabled": true, "scope": "all-pages", "numbering_mode": "per-file",
+    "start_number": 1, "format": "{current}", "zero_pad": 0,
+    "font_family": "SimFang", "font_size_pt": 8, "font_color": [0,0,0],
+    "bold": false, "italic": false, "opacity": 100,
+    "position_v": "bottom", "position_h": "center", "mirror_odd_even": false, "offset_mm": [0, 10]
+  }
+}
