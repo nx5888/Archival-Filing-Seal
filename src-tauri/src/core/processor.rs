@@ -2,56 +2,82 @@
 // 批量处理主循环
 
 use serde::Serialize;
-use sqlx::SqlitePool;
+use tauri::AppHandle;
 
 use crate::models::config::StampConfig;
+use crate::models::batch::BatchResult;
+use crate::core::pdf_editor;
+
+/// 进度负载（通过事件发送给前端）
+#[derive(Debug, Serialize, Clone)]
+pub struct ProgressPayload {
+    pub current: usize,
+    pub total: usize,
+    pub file_path: String,
+    pub status: String,      // "processing" | "completed" | "failed"
+    pub output_path: Option<String>,
+    pub error: Option<String>,
+}
 
 /// 启动批量处理
+/// file_paths: 前端传入的待处理 PDF 路径列表
 pub async fn start_batch_stamp(
-    _pool: &SqlitePool,
-    _app: tauri::AppHandle,
-    batch_ids: Vec<i64>,
-    _config: StampConfig,
-    _schema_json: String,
-) -> Result<crate::models::batch::BatchResult, String> {
+    app: AppHandle,
+    file_paths: Vec<String>,
+    config: StampConfig,
+    schema_json: String,
+) -> Result<BatchResult, String> {
+    let total = file_paths.len();
     let mut success: u32 = 0;
     let mut failed: u32 = 0;
     let mut errors: Vec<String> = Vec::new();
 
-    for batch_id in batch_ids {
-        // TODO: 从数据库读取该 batch 下的所有文件
-        // TODO: 逐文件调用 pdf_editor 处理
-        // TODO: 更新数据库状态
-        //
-        // 伪代码：
-        // let files = db::get_files_by_batch(_pool, batch_id).await?;
-        // for file in files {
-        //     match pdf_editor::stamp_pdf(&file, &_config, &_schema_json).await {
-        //         Ok(_) => { success += 1; db::mark_completed(_pool, file.id).await; }
-        //         Err(e) => { failed += 1; errors.push(format!("{}: {}", file.file_path, e)); }
-        //     }
-        // }
-        //
-        // 进度通知前端：
-        // _app.emit("stamp-progress", ProgressPayload { batch_id, current, total, ..  });
-        let _ = batch_id;
+    for (i, file_path) in file_paths.iter().enumerate() {
+        let current = i + 1;
+        let fp = file_path.clone();
+
+        // 发送"处理中"进度
+        let _ = app.emit("stamp-progress", ProgressPayload {
+            current,
+            total,
+            file_path: fp.clone(),
+            status: "processing".into(),
+            output_path: None,
+            error: None,
+        });
+
+        match pdf_editor::stamp_pdf(&fp, &config, &schema_json).await {
+            Ok(out_path) => {
+                success += 1;
+                let _ = app.emit("stamp-progress", ProgressPayload {
+                    current,
+                    total,
+                    file_path: fp.clone(),
+                    status: "completed".into(),
+                    output_path: Some(out_path),
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failed += 1;
+                let msg = format!("{}: {}", fp, e);
+                errors.push(msg.clone());
+                let _ = app.emit("stamp-progress", ProgressPayload {
+                    current,
+                    total,
+                    file_path: fp,
+                    status: "failed".into(),
+                    output_path: None,
+                    error: Some(msg),
+                });
+            }
+        }
     }
 
-    Ok(crate::models::batch::BatchResult {
+    Ok(BatchResult {
         total: success + failed,
         success,
         failed,
         errors,
     })
-}
-
-/// 处理进度负载（通过事件发送给前端）
-#[derive(Debug, Serialize)]
-pub struct ProgressPayload {
-    pub batch_id: i64,
-    pub file_path: String,
-    pub current: usize,
-    pub total: usize,
-    pub status: String, // "processing" | "completed" | "failed"
-    pub error: Option<String>,
 }

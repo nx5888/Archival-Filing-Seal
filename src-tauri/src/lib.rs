@@ -106,7 +106,6 @@ async fn list_config_schemes(
 /// 扫描目录，返回文件列表 + 自动检测的批次划分
 #[tauri::command]
 async fn scan_directory(
-    _pool: tauri::State<'_, SqlitePool>,
     app: tauri::AppHandle,
     root_path: String,
     template_id: i64,
@@ -127,13 +126,12 @@ fn parse_single_filename(
 /// 启动批量处理
 #[tauri::command]
 async fn start_batch_stamp(
-    pool: tauri::State<'_, SqlitePool>,
     app: tauri::AppHandle,
-    batch_ids: Vec<i64>,
+    file_paths: Vec<String>,
     config: models::config::StampConfig,
     schema_json: String,
 ) -> Result<models::batch::BatchResult, String> {
-    core::processor::start_batch_stamp(pool.inner(), app, batch_ids, config, schema_json).await
+    core::processor::start_batch_stamp(app, file_paths, config, schema_json).await
 }
 
 /// 接收用户手动选址坐标

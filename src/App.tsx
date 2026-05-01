@@ -155,8 +155,89 @@ function App() {
       alert('请先扫描目录');
       return;
     }
-    alert(`即将处理 ${scanResult.total_files} 个文件...\n（盖章核心功能待 P4 完整实现）`);
-  }, [connected, scanResult]);
+
+    // 从扫描结果中收集所有文件路径
+    const filePaths: string[] = [];
+    for (const batch of scanResult.batches) {
+      filePaths.push(...(batch.file_paths ?? []));
+    }
+    if (filePaths.length === 0) {
+      alert('没有可处理的文件');
+      return;
+    }
+
+    // 组装 StampConfig（匹配 Rust 后端结构体）
+    const config = {
+      fonds_code: configValues.fonds || null,
+      year: configValues.year || null,
+      retention: configValues.retention || null,
+      stamp_offset_mm: [
+        parseFloat(configValues.offsetX) || 0,
+        parseFloat(configValues.offsetY) || 0,
+      ],
+      page_number: {
+        enabled: false,
+        scope: 'all-pages',
+        page_range: null,
+        numbering_mode: 'per-file',
+        start_number: 1,
+        format: '{{num}}',
+        zero_pad: 0,
+        font_family: '',
+        font_size_pt: 9,
+        font_color: [0, 0, 0],
+        bold: false,
+        italic: false,
+        opacity: 100,
+        position_v: 'bottom',
+        position_h: 'center',
+        mirror_odd_even: false,
+        offset_mm: [0, 10],
+      },
+    };
+
+    // schema_json：优先使用编辑器中的 schema，否则使用默认模板
+    let schemaJson = '{}';
+    if (stampSchema) {
+      schemaJson = JSON.stringify(stampSchema);
+    } else {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const tpl = await invoke<any>('get_template', { templateId: 1 });
+        schemaJson = tpl.stamp_schema;
+      } catch {
+        schemaJson = '{}';
+      }
+    }
+
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      // 监听进度事件
+      let processed = 0;
+      const total = filePaths.length;
+      try {
+        const { listen } = await import('@tauri-apps/api/event');
+        const unlisten = await listen<any>('stamp-progress', (event) => {
+          const p = event.payload;
+          processed++;
+          console.log(`进度: ${p.current}/${p.total} - ${p.status} - ${p.file_path}`);
+        });
+
+      const result = await invoke<{ total: number; success: number; failed: number; errors: string[] }>(
+        'start_batch_stamp',
+        { filePaths, config, schemaJson }
+      );
+
+      unlisten();
+      alert(
+        `处理完成！\n总计: ${result.total}\n成功: ${result.success}\n失败: ${result.failed}` +
+        (result.errors.length > 0 ? `\n\n错误:\n${result.errors.slice(0, 5).join('\n')}` : '')
+      );
+    } catch (err) {
+      console.error('批量处理失败:', err);
+      alert(`处理失败: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [connected, scanResult, configValues, stampSchema]);
 
   return (
     <div style={{
