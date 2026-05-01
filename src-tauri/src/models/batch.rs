@@ -36,3 +36,12 @@ pub struct BatchPreview {
     pub retention: Option<String>,
     pub file_paths: Vec<String>,
 }
+
+/// 批量处理结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchResult {
+    pub total: u32,
+    pub success: u32,
+    pub failed: u32,
+    pub errors: Vec<String>,
+}

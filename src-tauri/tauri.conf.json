@@ -19,15 +19,13 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: asset: http://localhost; style-src 'self' 'unsafe-inline'",
-      "capabilities": ["default"]
+      "csp": "default-src 'self'; img-src 'self' data: asset: http://localhost; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
     "active": true,
-    "targets": "windows",
-    "icon": ["icons/icon.ico", "icons/icon.png"],
-    "resources": ["assets/fonts/**", "schemas/**"]
+    "targets": "all",
+    "icon": []
   },
-  "plugins": []
+  "plugins": {}
 }

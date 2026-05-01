@@ -2,19 +2,17 @@
 // 文件扫描 + 正则解析 + 路径解析 + 批次划分
 
 use std::path::PathBuf;
-use std::fs;
 use walkdir::WalkDir;
 use regex::Regex;
 use serde_json::Value;
 use crate::models::batch::{ScanResult, BatchPreview};
-use crate::models::file_info::FilePreview;
 use crate::models::schema::TemplateMatchResult;
 
 /// 扫描目录，返回文件列表 + 自动检测的批次划分
 pub async fn scan_directory(
     _app: tauri::AppHandle,
     root_path: String,
-    template_id: i64,
+    _template_id: i64,
     _config_json: String,
 ) -> Result<ScanResult, String> {
     let root = PathBuf::from(&root_path);
@@ -134,7 +132,8 @@ pub fn detect_template_match(
         // 1. 关键词匹配（40分）
         if let Some(keywords) = keyword_map.get(code) {
             for path_str in sample_paths {
-                let dir_name = PathBuf::from(path_str)
+                let path_buf = PathBuf::from(path_str);
+                let dir_name = path_buf
                     .file_name()
                     .and_then(|n| n.to_str())
                     .unwrap_or("");

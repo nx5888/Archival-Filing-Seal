@@ -1,18 +1,21 @@
 // src-tauri/src/core/processor.rs
 // 批量处理主循环
 
+use serde::Serialize;
+use sqlx::SqlitePool;
+
 use crate::models::config::StampConfig;
-use crate::models::batch::BatchResult;
 
 /// 启动批量处理
 pub async fn start_batch_stamp(
+    _pool: &SqlitePool,
     _app: tauri::AppHandle,
     batch_ids: Vec<i64>,
     _config: StampConfig,
     _schema_json: String,
-) -> Result<BatchResult, String> {
-    let mut success = 0usize;
-    let mut failed  = 0usize;
+) -> Result<crate::models::batch::BatchResult, String> {
+    let mut success: u32 = 0;
+    let mut failed: u32 = 0;
     let mut errors: Vec<String> = Vec::new();
 
     for batch_id in batch_ids {
@@ -21,22 +24,23 @@ pub async fn start_batch_stamp(
         // TODO: 更新数据库状态
         //
         // 伪代码：
-        // let files = db::get_files_by_batch(batch_id).await?;
+        // let files = db::get_files_by_batch(_pool, batch_id).await?;
         // for file in files {
-        //     match pdf_editor::stamp_pdf(&file, &config, &schema_json).await {
-        //         Ok(_) => { success += 1; db::mark_completed(file.id).await; }
+        //     match pdf_editor::stamp_pdf(&file, &_config, &_schema_json).await {
+        //         Ok(_) => { success += 1; db::mark_completed(_pool, file.id).await; }
         //         Err(e) => { failed += 1; errors.push(format!("{}: {}", file.file_path, e)); }
         //     }
         // }
         //
         // 进度通知前端：
-        // app.emit("stamp-progress", ProgressPayload { batch_id, current, total, ..  });
+        // _app.emit("stamp-progress", ProgressPayload { batch_id, current, total, ..  });
+        let _ = batch_id;
     }
 
-    Ok(BatchResult {
-        total: (success + failed) as u32,
-        success: success as u32,
-        failed: failed as u32,
+    Ok(crate::models::batch::BatchResult {
+        total: success + failed,
+        success,
+        failed,
         errors,
     })
 }

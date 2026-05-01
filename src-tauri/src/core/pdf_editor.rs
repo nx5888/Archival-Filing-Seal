@@ -2,13 +2,12 @@
 // PDF 盖章 + 页码叠加（pdfium-render + lopdf）
 
 use crate::models::config::StampConfig;
-use crate::utils::coord::*;
 
 /// 为单个 PDF 文件加盖归档章 + 添加页码
 pub async fn stamp_pdf(
-    file_path: &str,
-    config: &StampConfig,
-    schema_json: &str,
+    _file_path: &str,
+    _config: &StampConfig,
+    _schema_json: &str,
 ) -> Result<String, String> {
     // TODO: 完整实现
     //
@@ -22,7 +21,7 @@ pub async fn stamp_pdf(
     // 5. 保存到 <原目录>/_stamped/<原文件名>
     // 6. 返回输出文件路径
 
-    Ok(format!("{}_stamped.pdf", file_path))
+    Ok(format!("{}_stamped.pdf", _file_path))
 }
 
 /// 生成单文件预览（盖章后效果），返回预览图像临时文件路径
