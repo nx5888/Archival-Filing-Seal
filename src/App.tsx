@@ -1,17 +1,48 @@
 // src/App.tsx
-// 电子档案归档章印制工具 - 主界面（完整版）
+// 电子档案归档章印制工具 - 主界面 v2
+// Phase 1+2: 集成全部组件 + 打通「选择目录→扫描→展示」链路
 // 遵循方案 v3.1 架构
 
 import { useState, useEffect, useCallback } from 'react';
 import TemplateManager from './components/TemplateManager';
 import StampSchemaEditor from './components/StampSchemaEditor';
-import type { StampSchema } from './types/stamp';
+import PageNumberPanel from './components/PageNumberPanel';
+import BatchManager from './components/BatchManager';
+import FilePreviewTable from './components/FilePreviewTable';
+import type {
+  StampSchema,
+  ScanResult,
+  BatchPreview,
+  FilePreviewItem,
+  PageNumberConfig,
+} from './types/stamp';
 
 function App() {
+  // ---- 连接状态 ----
   const [connected, setConnected] = useState<boolean | null>(null);
+
+  // ---- 导航 ----
   const [activeMainTab, setActiveMainTab] = useState<'config' | 'stamp' | 'pagenum' | 'process'>('config');
-  // 归档章 Schema（从模板加载或自定义编辑）
+
+  // ---- 归档章 Schema ----
   const [stampSchema, setStampSchema] = useState<StampSchema | null>(null);
+
+  // ---- 扫描结果（核心数据流）----
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [rootPath, setRootPath] = useState<string>('');
+
+  // ---- 页码配置 ----
+  const [pageConfig, setPageConfig] = useState<PageNumberConfig | null>(null);
+
+  // ---- A 区固化值 ----
+  const [configValues, setConfigValues] = useState<Record<string, string>>({
+    fonds: '',
+    retention: '永久',
+    year: new Date().getFullYear().toString(),
+    offsetX: '5',
+    offsetY: '5',
+  });
 
   // 测试后端连接
   useEffect(() => {
@@ -27,10 +58,105 @@ function App() {
     init();
   }, []);
 
-  // 从 StampSchemaEditor 回调接收更新后的 Schema
+  // ============ 核心操作：选择目录 + 扫描 ============
+
+  const handleSelectDirectory = useCallback(async () => {
+    try {
+      // 打开目录选择（优先使用 Tauri 原生对话框，fallback 到手动输入）
+      let selectedDir: string | null = null;
+
+      // 尝试通过 Tauri invoke 调用文件系统对话框
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        selectedDir = await invoke<string | null>('dialog_open', {
+          options: { directory: true, multiple: false },
+        });
+      } catch {
+        // Tauri 不支持或未连接时，使用浏览器 prompt 输入路径
+      }
+
+      // 最终 fallback
+      if (!selectedDir) {
+        selectedDir = window.prompt('请输入要扫描的目录完整路径:', rootPath || 'D:\\');
+      }
+
+      if (!selectedDir) return;
+
+      setRootPath(selectedDir);
+      await performScan(selectedDir);
+    } catch (err) {
+      console.error('选择目录失败:', err);
+      alert(`选择目录失败: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, []);
+
+  const performScan = useCallback(async (dirPath: string) => {
+    if (!connected) {
+      alert('后端未连接，无法扫描。请确认应用以 Tauri 模式运行。');
+      return;
+    }
+
+    setScanning(true);
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const result = await invoke<ScanResult>('scan_directory', {
+        rootPath: dirPath,
+        templateId: 1, // 默认使用文书档案模板
+        configJson: JSON.stringify(configValues),
+      });
+      setScanResult(result);
+      // 自动切换到批次与预览 Tab
+      setActiveMainTab('process');
+    } catch (err) {
+      console.error('扫描失败:', err);
+      alert(`扫描失败: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setScanning(false);
+    }
+  }, [connected, configValues]);
+
+  // 从扫描结果中提取扁平化文件列表（供 FilePreviewTable 使用）
+  const flatFiles: FilePreviewItem[] = useCallback((): FilePreviewItem[] => {
+    if (!scanResult) return [];
+    return scanResult.batches.flatMap((batch: BatchPreview) =>
+      batch.file_paths.map((filePath: string) => ({
+        abs_path: filePath,
+        file_path: filePath.replace(/^[A-Z]:[/\\]/i, '').replace(/^\\\\/, ''),
+        extracted_fields: {},
+        status: 'pending' as const,
+        batch_name: batch.batch_name,
+        error_msg: undefined,
+      }))
+    );
+  }, [scanResult])();
+
+  // ============ 回调处理 ============
+
   const handleStampSchemaChange = useCallback((schema: StampSchema) => {
     setStampSchema(schema);
   }, []);
+
+  const handlePageConfigChange = useCallback((cfg: PageNumberConfig) => {
+    setPageConfig(cfg);
+  }, []);
+
+  // A 区值变更
+  const handleConfigChange = useCallback((key: string, value: string) => {
+    setConfigValues(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  // 开始批量处理
+  const handleStartProcessing = useCallback(async () => {
+    if (!connected) {
+      alert('后端未连接');
+      return;
+    }
+    if (!scanResult || scanResult.batches.length === 0) {
+      alert('请先扫描目录');
+      return;
+    }
+    alert(`即将处理 ${scanResult.total_files} 个文件...\n（盖章核心功能待 P4 完整实现）`);
+  }, [connected, scanResult]);
 
   return (
     <div style={{
@@ -62,12 +188,40 @@ function App() {
               {connected ? '● 后端已连接' : '○ 前端独立模式'}
             </span>
           )}
+          {rootPath && (
+            <span style={{ fontSize: 11, color: '#888', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              📂 {rootPath}
+            </span>
+          )}
+          {scanResult && (
+            <span style={{
+              padding: '2px 8px', borderRadius: 8, fontSize: 11,
+              background: '#e6f7ff', color: '#1890ff', border: '1px solid #91d5ff',
+            }}>
+              {scanResult.batches.length} 个批次 · {scanResult.total_files} 个文件
+            </span>
+          )}
         </div>
 
         {/* 工具栏按钮组 */}
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={btnStyle}>📂 选择目录</button>
-          <button style={btnStyle}>▶ 开始处理</button>
+          <button
+            style={btnStyle}
+            onClick={handleSelectDirectory}
+            disabled={scanning}
+          >
+            {scanning ? '⏳ 扫描中...' : '📂 选择目录'}
+          </button>
+          <button
+            style={{
+              ...btnStyle,
+              opacity: scanResult ? 1 : 0.5,
+            }}
+            disabled={!scanResult}
+            onClick={handleStartProcessing}
+          >
+            ▶ 开始处理
+          </button>
           <button style={{ ...btnStyle, opacity: 0.5 }} disabled>⚙ 设置</button>
         </div>
       </header>
@@ -103,6 +257,16 @@ function App() {
             ))}
           </nav>
 
+          {/* 批次快速状态 */}
+          {scanResult && (
+            <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+              <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>扫描概览</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>
+                {scanResult.total_files} 文件 / {scanResult.batches.length} 批次
+              </div>
+            </div>
+          )}
+
           <div style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid #f0f0f0' }}>
             <TemplateManager />
           </div>
@@ -110,6 +274,7 @@ function App() {
 
         {/* ===== 主内容区 ===== */}
         <main style={{ flex: 1, overflow: 'auto', padding: 20 }}>
+          {/* ===== Tab: 配置面板 (A/B/C) ===== */}
           {activeMainTab === 'config' && (
             <div>
               <h2 style={{ margin: '0 0 16px', fontSize: 16 }}>配置面板</h2>
@@ -125,13 +290,37 @@ function App() {
                   <p style={{ margin: '0 0 12px', fontSize: 12, color: '#888' }}>
                     兜底数据——无法从文件名或路径解析时使用此处的值。
                   </p>
-                  <ConfigField label="全宗号" placeholder="如 0226" defaultValue="" />
-                  <ConfigField label="默认保管期限" type="select"
-                    options={['永久', '30年', '10年', '3年']} defaultValue="永久" />
-                  <ConfigField label="默认年度" type="number"
-                    defaultValue={new Date().getFullYear().toString()} />
-                  <ConfigField label="归档章 X 偏移(mm)" type="number" defaultValue="5" />
-                  <ConfigField label="归档章 Y 偏移(mm)" type="number" defaultValue="5" />
+                  <ConfigField
+                    label="全宗号"
+                    placeholder="如 0226"
+                    value={configValues.fonds}
+                    onChange={v => handleConfigChange('fonds', v)}
+                  />
+                  <ConfigField
+                    label="默认保管期限"
+                    type="select"
+                    options={['永久', '30年', '10年', '3年']}
+                    value={configValues.retention}
+                    onChange={v => handleConfigChange('retention', v)}
+                  />
+                  <ConfigField
+                    label="默认年度"
+                    type="number"
+                    value={configValues.year}
+                    onChange={v => handleConfigChange('year', v)}
+                  />
+                  <ConfigField
+                    label="归档章 X 偏移(mm)"
+                    type="number"
+                    value={configValues.offsetX}
+                    onChange={v => handleConfigChange('offsetX', v)}
+                  />
+                  <ConfigField
+                    label="归档章 Y 偏移(mm)"
+                    type="number"
+                    value={configValues.offsetY}
+                    onChange={v => handleConfigChange('offsetY', v)}
+                  />
 
                   <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
                     <button style={btnStyle}>💾 保存为配置方案</button>
@@ -180,6 +369,7 @@ function App() {
             </div>
           )}
 
+          {/* ===== Tab: 归档章编辑器 ===== */}
           {activeMainTab === 'stamp' && (
             <StampSchemaEditor
               schema={stampSchema ?? undefined}
@@ -187,21 +377,46 @@ function App() {
             />
           )}
 
+          {/* ===== Tab: 页码设置 —— 使用完整组件 ===== */}
           {activeMainTab === 'pagenum' && (
             <div>
               <h2 style={{ margin: '0 0 16px', fontSize: 16 }}>📄 页码设置</h2>
               <p style={{ color: '#888', marginBottom: 16 }}>
                 页码功能完全遵循 §0 全自定义原则——范围、格式、位置、外观均可配置。
               </p>
-              <PageNumberPlaceholder />
+              <PageNumberPanel
+                config={pageConfig ?? undefined}
+                onChange={handlePageConfigChange}
+              />
             </div>
           )}
 
+          {/* ===== Tab: 批次与预览 —— 使用完整组件 ===== */}
           {activeMainTab === 'process' && (
             <div>
               <h2 style={{ margin: '0 0 16px', fontSize: 16 }}>🚀 批次管理与文件预览</h2>
-              <BatchPlaceholder />
-              <FilePreviewPlaceholder />
+
+              {!scanResult ? (
+                <div style={{
+                  padding: 40, textAlign: 'center', background: '#fff',
+                  borderRadius: 6, border: '2px dashed #d9d9d9',
+                }}>
+                  <p style={{ fontSize: 32, margin: '0 0 8px' }}>📂</p>
+                  <p style={{ margin: 0, color: '#888' }}>
+                    点击顶部「选择目录」按钮开始扫描 PDF 文件
+                  </p>
+                  <p style={{ margin: '4px 0 0', color: '#bbb', fontSize: 11 }}>
+                    扫描完成后，批次列表和文件预览将在此展示
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <BatchManager batches={scanResult.batches} />
+                  <div style={{ marginTop: 16 }}>
+                    <FilePreviewTable files={flatFiles} />
+                  </div>
+                </>
+              )}
             </div>
           )}
         </main>
@@ -210,26 +425,37 @@ function App() {
   );
 }
 
-// ============ 小型辅助组件（后续替换为独立组件） ============
+// ============ 辅助组件 ============
 
 interface ConfigFieldProps {
   label: string;
   type?: 'text' | 'number' | 'select';
   options?: string[];
-  defaultValue?: string;
+  value: string;
+  onChange: (value: string) => void;
   placeholder?: string;
 }
 
-function ConfigField({ label, type = 'text', options, defaultValue = '', placeholder }: ConfigFieldProps) {
+function ConfigField({ label, type = 'text', options, value, onChange, placeholder }: ConfigFieldProps) {
   return (
     <div style={{ marginBottom: 10, display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: 8 }}>
       <label style={{ fontSize: 13 }}>{label}</label>
       {type === 'select' ? (
-        <select style={inputStyle} defaultValue={defaultValue}>
+        <select
+          style={inputStyle}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+        >
           {(options ?? []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
       ) : (
-        <input type={type} style={inputStyle} defaultValue={defaultValue} placeholder={placeholder} />
+        <input
+          type={type}
+          style={inputStyle}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
       )}
     </div>
   );
@@ -255,61 +481,6 @@ function RegexPreviewHint() {
     }}>
       💡 提示：正则生成后允许手动微调。下方实时显示解析结果预览。
       支持中文匹配：`(?&lt;name&gt;[\w\u4e00-\u9fff]+)`
-    </div>
-  );
-}
-
-function PageNumberPlaceholder() {
-  const items = [
-    { label: '适用范围', values: ['全部文件', '仅已盖章文件', '指定文件'] },
-    { label: '添加页面', values: ['全部页面', '跳过首页', '仅奇数页', '仅偶数页', '指定范围'] },
-    { label: '编号规则', values: ['逐件重排', '连续编号', '起始号可调'] },
-    { label: '显示格式', values: ['{current}', '第{current}页', '{current}/{total}', '自定义模板'] },
-    { label: '位置', values: ['页眉/页脚', '左/中/右', '双面打印奇偶镜像'] },
-    { label: '字体外观', values: ['字号/粗体/斜体', '颜色', '透明度 0-100%'] },
-  ];
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-      {items.map(item => (
-        <div key={item.label} style={{
-          padding: 14, background: '#fff', borderRadius: 6,
-          border: '1px solid #e8e8e8',
-        }}>
-          <strong style={{ fontSize: 13, color: '#1890ff' }}>{item.label}</strong>
-          <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {item.values.map(v => (
-              <span key={v} style={{
-                padding: '2px 8px', fontSize: 11, background: '#f0f0f0',
-                borderRadius: 3, color: '#666',
-              }}>{v}</span>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function BatchPlaceholder() {
-  return (
-    <div style={{
-      padding: 40, textAlign: 'center', background: '#fff',
-      borderRadius: 6, border: '2px dashed #d9d9d9', marginBottom: 16,
-    }}>
-      <p style={{ fontSize: 32, margin: '0 0 8px' }}>📂</p>
-      <p style={{ margin: 0, color: '#888' }}>选择根目录开始扫描，批次列表将在此展示</p>
-    </div>
-  );
-}
-
-function FilePreviewPlaceholder() {
-  return (
-    <div style={{
-      padding: 40, textAlign: 'center', background: '#fff',
-      borderRadius: 6, border: '2px dashed #d9d9d9',
-    }}>
-      <p style={{ fontSize: 32, margin: '0 0 8px' }}>📋</p>
-      <p style={{ margin: 0, color: '#888' }}>扫描完成后，文件解析结果和字段预览表格将在此展示</p>
     </div>
   );
 }
