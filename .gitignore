@@ -93,6 +93,10 @@ wheels/
 **/0226/**
 **/*.pdf
 
+# Debug and temporary output files
+*.txt
+src-tauri/**/*.txt
+
 # User-specific files
 *.user
 *.suo
