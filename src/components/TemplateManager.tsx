@@ -17,7 +17,7 @@ export default function TemplateManager() {
 
   async function loadTemplates() {
     try {
-      const { invoke } = await import('@tauri-apps/api');
+      const { invoke } = await import('@tauri-apps/api/core');
       const result = await invoke<ArchiveTemplate[]>('list_templates');
       setTemplates(result);
     } catch (e) {
