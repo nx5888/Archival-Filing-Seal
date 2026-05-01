@@ -1,0 +1,21 @@
+{
+  "fonds_code": "0226",
+  "year": "2021",
+  "retention": "永久",
+  "project_code": "D30",
+  "security_class": "公开",
+  "file_count": "1",
+  "page_count": "10",
+  "stamp_offset_mm": [
+    15.0,
+    10.0
+  ],
+  "page_number": {
+    "enabled": false
+  },
+  "seal_image_path": "test_seal.png",
+  "seal_x_pct": 50.0,
+  "seal_y_pct": 50.0,
+  "seal_w_mm": 30.0,
+  "seal_h_mm": 30.0
+}

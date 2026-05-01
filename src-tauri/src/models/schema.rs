@@ -111,3 +111,15 @@ pub struct TemplateMatchResult {
     pub template_code: String,
     pub confidence: u8,
 }
+
+/// 印章元数据
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Seal {
+    pub id: i64,
+    pub name: String,
+    pub file_path: String,
+    pub width_mm: Option<f32>,
+    pub height_mm: Option<f32>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+}

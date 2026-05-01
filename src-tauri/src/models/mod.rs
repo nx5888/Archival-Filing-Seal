@@ -5,4 +5,3 @@ pub mod schema;
 pub mod file_info;
 pub mod batch;
 pub mod config;
-pub mod scheme;

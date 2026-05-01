@@ -1,0 +1,46 @@
+{
+  "width_mm": 60,
+  "height_mm": 45,
+  "cells": [
+    {
+      "x_pct": 0,
+      "y_pct": 0,
+      "w_pct": 100,
+      "h_pct": 20,
+      "field_key": "fonds_code",
+      "label": "全宗号:"
+    },
+    {
+      "x_pct": 0,
+      "y_pct": 20,
+      "w_pct": 100,
+      "h_pct": 20,
+      "field_key": "year",
+      "label": "年度:"
+    },
+    {
+      "x_pct": 0,
+      "y_pct": 40,
+      "w_pct": 100,
+      "h_pct": 20,
+      "field_key": "retention",
+      "label": "保管期限:"
+    },
+    {
+      "x_pct": 0,
+      "y_pct": 60,
+      "w_pct": 100,
+      "h_pct": 20,
+      "field_key": "file_count",
+      "label": "件号:"
+    },
+    {
+      "x_pct": 0,
+      "y_pct": 80,
+      "w_pct": 100,
+      "h_pct": 20,
+      "field_key": "page_count",
+      "label": "页数:"
+    }
+  ]
+}

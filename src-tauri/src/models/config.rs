@@ -10,6 +10,13 @@ pub struct StampConfig {
     pub fonds_code: Option<String>,
     pub year: Option<String>,
     pub retention: Option<String>,
+    /// 印章图片路径（可选，如果设置则在归档章上叠加印章图片）
+    pub seal_image_path: Option<String>,
+    /// 印章在归档章中的位置和大小（百分比，相对于归档章矩形）
+    pub seal_x_pct: Option<f32>,
+    pub seal_y_pct: Option<f32>,
+    pub seal_w_mm: Option<f32>,
+    pub seal_h_mm: Option<f32>,
     pub stamp_offset_mm: [f32; 2],
     pub page_number: PageNumberConfig,
 }

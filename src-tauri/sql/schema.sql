@@ -76,3 +76,14 @@ CREATE INDEX IF NOT EXISTS idx_files_status    ON files(status);
 CREATE INDEX IF NOT EXISTS idx_files_batch     ON files(batch_id);
 CREATE INDEX IF NOT EXISTS idx_files_template  ON files(template_id);
 CREATE INDEX IF NOT EXISTS idx_files_project   ON files(project_id);
+
+-- 印章表
+CREATE TABLE IF NOT EXISTS seals (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE,
+    file_path   TEXT NOT NULL UNIQUE,
+    width_mm    REAL,
+    height_mm   REAL,
+    created_at  TEXT DEFAULT (datetime('now', 'localtime')),
+    updated_at  TEXT DEFAULT (datetime('now', 'localtime'))
+);

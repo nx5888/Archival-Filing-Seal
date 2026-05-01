@@ -27,6 +27,15 @@ pub struct ScanResult {
     pub total_files: usize,
 }
 
+/// 批次盖章结果（start_batch_stamp 返回值）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BatchResult {
+    pub total: usize,
+    pub success: usize,
+    pub failed: usize,
+    pub errors: Vec<String>,
+}
+
 /// 批次预览（扫描阶段返回）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchPreview {
@@ -35,13 +44,4 @@ pub struct BatchPreview {
     pub year: Option<String>,
     pub retention: Option<String>,
     pub file_paths: Vec<String>,
-}
-
-/// 批量处理结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BatchResult {
-    pub total: u32,
-    pub success: u32,
-    pub failed: u32,
-    pub errors: Vec<String>,
 }
